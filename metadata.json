@@ -1,0 +1,6 @@
+{
+  "name": "FATIMA GLOBAL ATTESTATION",
+  "description": "Apostille, document attestation, MEA, SDM, Chamber of Commerce, translation, and embassy legalization assistance for Indian documents used abroad.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

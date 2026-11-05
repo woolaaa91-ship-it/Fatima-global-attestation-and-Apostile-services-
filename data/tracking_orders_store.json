@@ -1,0 +1,51 @@
+{
+  "orders": [
+    {
+      "internalOrderId": "b36d0219-8247-4722-98c1-8ba48787da29",
+      "trackingId": "FGA-2026-000184",
+      "publicTrackingToken": "3f43af8426d9ef8e59aea8f3e4ee2bb574c8bf16ae194414",
+      "customerReference": "Receipt #184",
+      "customerPhone": "+919876543210",
+      "customerWhatsAppConsent": true,
+      "whatsappDeliveryStatus": "not_configured_manual_ready",
+      "whatsappLastNotifiedAt": null,
+      "verificationPinHash": null,
+      "requiresPin": false,
+      "serviceType": "SDM + Apostille Services",
+      "documentCategory": "Educational Documents",
+      "destinationCountry": "Germany",
+      "currentStatus": "Order Received",
+      "createdAt": "2026-10-25T09:07:46.610Z",
+      "updatedAt": "2026-10-25T09:07:46.610Z",
+      "internalNotes": "",
+      "publicTimeline": [
+        {
+          "id": "20b78d37-6bf2-4cdf-abd4-5cd2a05a1fd2",
+          "status": "Order Received",
+          "summary": "Documents received and registered for processing.",
+          "timestamp": "2026-10-25T09:07:46.610Z"
+        }
+      ],
+      "tokenExpiresAt": null,
+      "isArchived": false,
+      "createdBy": "Operations Desk (Super Administrator)",
+      "updatedBy": "Operations Desk (Super Administrator)"
+    }
+  ],
+  "auditLogs": [
+    {
+      "auditId": "9a1ff9ce-e2de-40c6-8ba5-04df5170ada8",
+      "internalOrderId": "b36d0219-8247-4722-98c1-8ba48787da29",
+      "trackingId": "FGA-2026-000184",
+      "actorName": "Operations Desk",
+      "actorRole": "Super Administrator",
+      "action": "ORDER_CREATED",
+      "previousStatus": null,
+      "newStatus": "Order Received",
+      "details": "Created order FGA-2026-000184 (SDM + Apostille Services — Educational Documents).",
+      "timestamp": "2026-10-25T09:07:46.610Z"
+    }
+  ],
+  "lastSequenceNumber": 184,
+  "updatedAt": "2026-10-25T09:07:46.610Z"
+}

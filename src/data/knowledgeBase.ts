@@ -1,0 +1,1380 @@
+export type DocumentCategory = "educational" | "personal" | "commercial";
+
+export interface OfficialSourceCitation {
+  title: string;
+  url: string;
+  authorityType:
+    | "MEA_INDIA"
+    | "HCCH"
+    | "EMBASSY_CONSULATE"
+    | "GOVERNMENT_PORTAL"
+    | "WEB_GROUNDING";
+}
+
+export interface AuthenticationStep {
+  stepNumber: number;
+  authority: string;
+  description: string;
+  isMandatory: boolean;
+  conditionNote?: string;
+}
+
+export interface KnowledgeRecord {
+  id: string;
+  destinationCountry: string;
+  countryCode: string;
+  isHagueConventionApplicable: boolean;
+  treatyStatusNote: string;
+  documentCategory: DocumentCategory;
+  documentType: string;
+  authenticationRouteTitle: string;
+  stepByStepSequence: AuthenticationStep[];
+  verifiedStatutoryRules: string[];
+  itemsRequiringConfirmation: string[];
+  translationRequirement: {
+    required: boolean | "yes" | "no" | "conditional";
+    details: string;
+  };
+  specialCountryRequirements: string[];
+  verificationStatus:
+    | "verified"
+    | "partially_verified"
+    | "requires_further_verification"
+    | "draft_researched";
+  lastVerifiedDate: string;
+  officialSources: OfficialSourceCitation[];
+  researchMetadata?: {
+    modelUsed: string;
+    groundedSearchUsed: boolean;
+    confidenceScore: string;
+    researchedAt: string;
+    notes?: string;
+  };
+}
+
+export interface ResearchBudgetLedger {
+  maxBudgetLimit: number;
+  configuredConservativeLimit: number;
+  requestsAttempted: number;
+  requestsCompleted: number;
+  requestsFailed: number;
+  deduplicationHits: number;
+  lastRequestTimestamp: string | null;
+  lastError: string | null;
+  quotaDisclosure: string;
+}
+
+export interface PriorityResearchQueueItem {
+  id: string;
+  priorityTier: 1 | 2 | 3;
+  destinationGroup: string;
+  destinationCountry: string;
+  documentCategory: DocumentCategory;
+  documentType: string;
+  rationale: string;
+}
+
+function slugifySegment(value: string): string {
+  return String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function buildKnowledgeRecordId(
+  destinationCountry: string,
+  documentCategory: string,
+  documentType: string
+): string {
+  return `${slugifySegment(destinationCountry)}__${slugifySegment(
+    documentCategory
+  )}__${slugifySegment(documentType)}`;
+}
+
+export const INITIAL_BUDGET_LEDGER: ResearchBudgetLedger = {
+  maxBudgetLimit: 2000,
+  configuredConservativeLimit: 200,
+  requestsAttempted: 0,
+  requestsCompleted: 0,
+  requestsFailed: 0,
+  deduplicationHits: 0,
+  lastRequestTimestamp: null,
+  lastError: null,
+  quotaDisclosure:
+    "Maximum research budget is strictly capped at 2,000 Google Search grounding requests. External Google Cloud / Gemini API project quotas and billing limits cannot be queried directly via the generateContent API; therefore, this system enforces a local persistent request ledger with a conservative configurable limit, reuses verified records to avoid duplicate queries, and halts automatically upon reaching the limit or encountering rate limits.",
+};
+
+export const INITIAL_KNOWLEDGE_RECORDS: KnowledgeRecord[] = [
+  {
+    id: "united-arab-emirates-uae__educational__bachelor-s-master-s-degree-certificate",
+    destinationCountry: "United Arab Emirates (UAE)",
+    countryCode: "AE",
+    isHagueConventionApplicable: false,
+    treatyStatusNote:
+      "The UAE is not a contracting party to the 1961 Hague Apostille Convention. Indian documents require full bilateral consular attestation.",
+    documentCategory: "educational",
+    documentType: "Bachelor's / Master's Degree Certificate",
+    authenticationRouteTitle:
+      "Bilateral Embassy Legalization Route (MEA + UAE Embassy + UAE MOFAIC)",
+    stepByStepSequence: [
+      {
+        stepNumber: 1,
+        authority: "Notary Public (India)",
+        description:
+          "Primary verification of original degree certificate and endorsement on reverse side.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 2,
+        authority:
+          "State HRD Department or SDM (Sub-Divisional Magistrate, Delhi)",
+        description:
+          "State-level education department authentication (HRD) of the issuing state, or SDM New Delhi authentication where accepted.",
+        isMandatory: true,
+        conditionNote:
+          "Certain UAE government ministries, ICP/GDRFA golden visa categories, or regulated professions (healthcare/teaching) may specifically require State HRD.",
+      },
+      {
+        stepNumber: 3,
+        authority: "Ministry of External Affairs (MEA), Government of India",
+        description:
+          "MEA CPV Division normal attestation ink stamp and officer signature (not an Apostille sticker).",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 4,
+        authority: "UAE Embassy / Consulate in India (New Delhi / Mumbai)",
+        description:
+          "Consular attestation seal and digital sticker applied by the Embassy of the United Arab Emirates.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 5,
+        authority: "UAE Ministry of Foreign Affairs (MOFAIC) — Post-Arrival",
+        description:
+          "Final counter-attestation inside the UAE before submission to MOHRE/GDRFA/ICP.",
+        isMandatory: true,
+      },
+    ],
+    verifiedStatutoryRules: [
+      "UAE is not a member of the 1961 Hague Apostille Convention; MEA Normal Attestation + UAE Embassy Legalization is mandatory.",
+      "The UAE Embassy in India will only attest educational certificates that already bear valid State HRD/SDM and MEA India attestation stamps.",
+      "Original degree certificate (without lamination on the back) is required for physical ink stamping.",
+    ],
+    itemsRequiringConfirmation: [
+      "Confirm with your UAE employer or licensing authority (e.g., DHA, DOH, MOE, MOHRE) whether SDM authentication is accepted or if State HRD + Equational Equivalency (MOE) is strictly mandated.",
+      "Check whether consolidated marksheets must be attested alongside the degree certificate.",
+    ],
+    translationRequirement: {
+      required: "conditional",
+      details:
+        "English degrees issued by recognized Indian universities are generally accepted in the UAE; legal Arabic translation is only required if requested by specific local courts or ministries.",
+    },
+    specialCountryRequirements: [
+      "UAE MOFAIC digital/counter-attestation is required inside the UAE after New Delhi UAE Embassy attestation.",
+      "UAE Ministry of Education (MOE) Equivalency Certificate is required for specific regulated roles and Golden Visa categories.",
+    ],
+    verificationStatus: "verified",
+    lastVerifiedDate: "2025-02-15",
+    officialSources: [
+      {
+        title: "MEA India — CPV Division Attestation & Apostille Guidelines",
+        url: "https://www.mea.gov.in/apostille-and-attestation.htm",
+        authorityType: "MEA_INDIA",
+      },
+      {
+        title:
+          "UAE Ministry of Foreign Affairs (MOFA) — Document Attestation Service",
+        url: "https://www.mofa.gov.ae/en/Services/attestation-of-official-documents-and-certificates",
+        authorityType: "GOVERNMENT_PORTAL",
+      },
+    ],
+    researchMetadata: {
+      modelUsed: "curated_official_seed",
+      groundedSearchUsed: false,
+      confidenceScore: "high",
+      researchedAt: "2025-02-15T00:00:00Z",
+      notes: "Core high-volume route verified against MEA CPV and UAE MOFA guidelines.",
+    },
+  },
+  {
+    id: "united-arab-emirates-uae__personal__birth-certificate",
+    destinationCountry: "United Arab Emirates (UAE)",
+    countryCode: "AE",
+    isHagueConventionApplicable: false,
+    treatyStatusNote:
+      "The UAE is not a contracting party to the 1961 Hague Apostille Convention. Bilateral embassy legalization is mandatory.",
+    documentCategory: "personal",
+    documentType: "Birth Certificate",
+    authenticationRouteTitle:
+      "Bilateral Embassy Legalization Route (Notary → SDM/Home → MEA → UAE Embassy → UAE MOFA)",
+    stepByStepSequence: [
+      {
+        stepNumber: 1,
+        authority: "Notary Public (India)",
+        description:
+          "Initial notary verification on the original municipal/registrar birth certificate.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 2,
+        authority:
+          "Sub-Divisional Magistrate (SDM, Delhi) or State Home Department",
+        description:
+          "Administrative authentication prior to central ministry submission.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 3,
+        authority: "Ministry of External Affairs (MEA), India",
+        description:
+          "MEA Normal Attestation stamp applied on the reverse of the original certificate.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 4,
+        authority: "UAE Embassy in New Delhi / Consulate in Mumbai",
+        description: "UAE diplomatic mission legalization seal.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 5,
+        authority: "UAE MOFAIC (Inside UAE)",
+        description:
+          "Final attestation in the UAE for dependent/family residence visa processing.",
+        isMandatory: true,
+      },
+    ],
+    verifiedStatutoryRules: [
+      "For UAE family/dependent visa sponsorship (child residence permit), the Indian Birth Certificate must bear MEA Normal Attestation and UAE Embassy attestation followed by UAE MOFA.",
+      "Certificates issued in regional Indian languages without English text must be accompanied by an official English translation or bilingual municipal certificate.",
+    ],
+    itemsRequiringConfirmation: [
+      "Verify that parents' names on the Birth Certificate exactly match the spellings in the parents' and child's Indian passports.",
+    ],
+    translationRequirement: {
+      required: "conditional",
+      details:
+        "English or bilingual (Regional + English) municipal certificates are accepted for MEA and UAE Embassy in India; Arabic translation may be required locally in the UAE depending on the emirate's GDRFA/ICP office.",
+    },
+    specialCountryRequirements: [
+      "Passport copies of both parents and the child are required as supporting documents for UAE Embassy submission.",
+    ],
+    verificationStatus: "verified",
+    lastVerifiedDate: "2025-02-15",
+    officialSources: [
+      {
+        title: "MEA India — Attestation of Personal Documents",
+        url: "https://www.mea.gov.in/apostille-and-attestation.htm",
+        authorityType: "MEA_INDIA",
+      },
+      {
+        title: "UAE MOFA — Attestation of Official Documents",
+        url: "https://www.mofa.gov.ae/en/Services/attestation-of-official-documents-and-certificates",
+        authorityType: "GOVERNMENT_PORTAL",
+      },
+    ],
+    researchMetadata: {
+      modelUsed: "curated_official_seed",
+      groundedSearchUsed: false,
+      confidenceScore: "high",
+      researchedAt: "2025-02-15T00:00:00Z",
+    },
+  },
+  {
+    id: "united-arab-emirates-uae__personal__marriage-certificate",
+    destinationCountry: "United Arab Emirates (UAE)",
+    countryCode: "AE",
+    isHagueConventionApplicable: false,
+    treatyStatusNote:
+      "Non-Hague destination. Full MEA + UAE Embassy + UAE MOFA attestation required.",
+    documentCategory: "personal",
+    documentType: "Marriage Certificate",
+    authenticationRouteTitle:
+      "Bilateral Embassy Legalization Route (Notary → SDM/Home → MEA → UAE Embassy → UAE MOFA)",
+    stepByStepSequence: [
+      {
+        stepNumber: 1,
+        authority: "Notary Public (India)",
+        description:
+          "Notarial endorsement of the government-registered marriage certificate.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 2,
+        authority: "Sub-Divisional Magistrate (SDM) or State Home Department",
+        description: "State/SDM level authentication.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 3,
+        authority: "Ministry of External Affairs (MEA), India",
+        description: "Central government normal attestation stamp.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 4,
+        authority: "UAE Embassy (New Delhi)",
+        description: "Consular legalization stamp by the UAE Embassy.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 5,
+        authority: "UAE MOFAIC",
+        description:
+          "Final counter-attestation inside the UAE for spouse visa sponsorship.",
+        isMandatory: true,
+      },
+    ],
+    verifiedStatutoryRules: [
+      "Only government/registrar-issued Marriage Certificates are eligible for MEA and UAE Embassy attestation; religious certificates (Nikahnama/Church/Temple certificates) must be registered with the Registrar of Marriages first.",
+    ],
+    itemsRequiringConfirmation: [
+      "Check spouse name consistency across Marriage Certificate and both spouses' passports.",
+    ],
+    translationRequirement: {
+      required: "conditional",
+      details:
+        "Certificate must be in English or accompanied by a certified English/Arabic translation.",
+    },
+    specialCountryRequirements: [
+      "Clear passport copies of both husband and wife are required during UAE Embassy submission.",
+    ],
+    verificationStatus: "partially_verified",
+    lastVerifiedDate: "2025-02-15",
+    officialSources: [
+      {
+        title: "MEA India — CPV Division Guidelines",
+        url: "https://www.mea.gov.in/apostille-and-attestation.htm",
+        authorityType: "MEA_INDIA",
+      },
+    ],
+    researchMetadata: {
+      modelUsed: "curated_official_seed",
+      groundedSearchUsed: false,
+      confidenceScore: "high",
+      researchedAt: "2025-02-15T00:00:00Z",
+    },
+  },
+  {
+    id: "united-arab-emirates-uae__commercial__certificate-of-incorporation-coi",
+    destinationCountry: "United Arab Emirates (UAE)",
+    countryCode: "AE",
+    isHagueConventionApplicable: false,
+    treatyStatusNote:
+      "Non-Hague destination. Commercial documents require Chamber + MEA + UAE Embassy attestation.",
+    documentCategory: "commercial",
+    documentType: "Certificate of Incorporation (COI)",
+    authenticationRouteTitle:
+      "Commercial Embassy Legalization Route (Chamber of Commerce → MEA → UAE Embassy → UAE MOFA)",
+    stepByStepSequence: [
+      {
+        stepNumber: 1,
+        authority: "Recognized Chamber of Commerce (India)",
+        description:
+          "Initial commercial verification and rubber stamp by local/national Chamber of Commerce.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 2,
+        authority: "Ministry of External Affairs (MEA), India",
+        description:
+          "MEA Normal Attestation of the Chamber-attested commercial document.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 3,
+        authority: "UAE Embassy in New Delhi / Consulate in Mumbai",
+        description:
+          "Commercial tariff consular legalization by the UAE diplomatic mission.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 4,
+        authority: "UAE MOFAIC",
+        description:
+          "Final commercial attestation in the UAE for mainland/free-zone branch or bank setup.",
+        isMandatory: true,
+      },
+    ],
+    verifiedStatutoryRules: [
+      "MEA India strictly requires Chamber of Commerce attestation on all Indian commercial and company documents before MEA counter-attestation.",
+      "UAE Embassy commercial legalization fees vary by document type (COI, MOA, POA, Board Resolution, Commercial Invoice).",
+    ],
+    itemsRequiringConfirmation: [
+      "Confirm with the UAE Free Zone or Department of Economic Development (DED) whether MOA, AOA, and Board Resolution must be attested as a combined set.",
+    ],
+    translationRequirement: {
+      required: "conditional",
+      details:
+        "Legal Arabic translation is frequently required inside the UAE prior to Notary/DED submission.",
+    },
+    specialCountryRequirements: [
+      "Company covering letter on official letterhead and signatory passport/PAN copy are required for Chamber and Embassy submission.",
+    ],
+    verificationStatus: "partially_verified",
+    lastVerifiedDate: "2025-02-15",
+    officialSources: [
+      {
+        title: "MEA India — Commercial Document Attestation",
+        url: "https://www.mea.gov.in/apostille-and-attestation.htm",
+        authorityType: "MEA_INDIA",
+      },
+    ],
+    researchMetadata: {
+      modelUsed: "curated_official_seed",
+      groundedSearchUsed: false,
+      confidenceScore: "high",
+      researchedAt: "2025-02-15T00:00:00Z",
+    },
+  },
+  {
+    id: "kingdom-of-saudi-arabia-ksa__educational__bachelor-s-master-s-degree-certificate",
+    destinationCountry: "Kingdom of Saudi Arabia (KSA)",
+    countryCode: "SA",
+    isHagueConventionApplicable: true,
+    treatyStatusNote:
+      "Saudi Arabia acceded to the 1961 Hague Apostille Convention (effective December 7, 2022). Most documents now follow the MEA Hague Apostille route, alongside Saudi QVP (Qiwa) / Culture requirements where applicable.",
+    documentCategory: "educational",
+    documentType: "Bachelor's / Master's Degree Certificate",
+    authenticationRouteTitle:
+      "Hague Apostille Route + Saudi QVP / Cultural Verification Check",
+    stepByStepSequence: [
+      {
+        stepNumber: 1,
+        authority: "Notary Public (India)",
+        description: "Initial verification of the original degree certificate.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 2,
+        authority: "State HRD Department or SDM (Sub-Divisional Magistrate)",
+        description:
+          "State HRD authentication (strongly recommended for Saudi work visas) or SDM authentication.",
+        isMandatory: true,
+        conditionNote:
+          "Saudi authorities and Saudi Cultural Mission / QVP frequently require State HRD authentication on educational degrees.",
+      },
+      {
+        stepNumber: 3,
+        authority: "Ministry of External Affairs (MEA), India — Hague Apostille",
+        description:
+          "Computer-generated MEA Hague Apostille sticker with unique serial and QR verification.",
+        isMandatory: true,
+      },
+    ],
+    verifiedStatutoryRules: [
+      "Saudi Arabia is a contracting state to the 1961 Hague Apostille Convention since 7 December 2022.",
+      "Under the Hague Convention, an MEA Apostille sticker replaces routine Saudi Embassy consular legalization for standard public documents.",
+    ],
+    itemsRequiringConfirmation: [
+      "Verify whether your profession requires Saudi Qualification Verification Program (QVP / Mosadaqa), Saudi Council of Engineers (SCE), or SCFHS (DataFlow) verification in addition to MEA Apostille.",
+      "Confirm with your Saudi sponsor/visa agency whether State HRD is mandatory prior to MEA Apostille.",
+    ],
+    translationRequirement: {
+      required: "conditional",
+      details:
+        "Certified Arabic translation may be required if requested by the Saudi employer or ministry.",
+    },
+    specialCountryRequirements: [
+      "Professional work visas for Saudi Arabia often require online Qualification Verification Program (QVP) registration in addition to physical document authentication.",
+    ],
+    verificationStatus: "verified",
+    lastVerifiedDate: "2025-02-15",
+    officialSources: [
+      {
+        title: "HCCH — 1961 Apostille Convention Status Table (Saudi Arabia)",
+        url: "https://www.hcch.net/en/instruments/conventions/status-table/?cid=41",
+        authorityType: "HCCH",
+      },
+      {
+        title: "MEA India — Apostille Convention Guidelines",
+        url: "https://www.mea.gov.in/apostille-and-attestation.htm",
+        authorityType: "MEA_INDIA",
+      },
+    ],
+    researchMetadata: {
+      modelUsed: "curated_official_seed",
+      groundedSearchUsed: false,
+      confidenceScore: "high",
+      researchedAt: "2025-02-15T00:00:00Z",
+    },
+  },
+  {
+    id: "china__educational__bachelor-s-master-s-degree-certificate",
+    destinationCountry: "China",
+    countryCode: "CN",
+    isHagueConventionApplicable: false,
+    treatyStatusNote:
+      "CRITICAL TREATY EXCEPTION: Although China acceded to the Hague Apostille Convention in November 2023, the Republic of India lodged a formal objection under Article 12. Therefore, the Apostille Convention IS NOT IN FORCE between India and Mainland China.",
+    documentCategory: "educational",
+    documentType: "Bachelor's / Master's Degree Certificate",
+    authenticationRouteTitle:
+      "Mandatory Bilateral Embassy Legalization Route (MEA Normal Attestation + Chinese Embassy New Delhi)",
+    stepByStepSequence: [
+      {
+        stepNumber: 1,
+        authority: "Notary Public (India)",
+        description: "Notarial attestation of original degree certificate.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 2,
+        authority: "State HRD Department or SDM (New Delhi)",
+        description: "State HRD or Sub-Divisional Magistrate authentication.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 3,
+        authority:
+          "Ministry of External Affairs (MEA), India — Normal Attestation",
+        description:
+          "MEA Normal Attestation ink stamp (DO NOT apply an Apostille sticker, as Chinese Embassy rejects Indian Apostilles).",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 4,
+        authority:
+          "Embassy of the People's Republic of China in India (New Delhi)",
+        description:
+          "Consular legalization via the Chinese Visa Application Service Center / Chinese Embassy in New Delhi.",
+        isMandatory: true,
+      },
+    ],
+    verifiedStatutoryRules: [
+      "Under Article 12 of the 1961 Hague Apostille Convention, the treaty does not apply between India and Mainland China due to India's formal objection to China's accession.",
+      "Documents issued in India for use in Mainland China MUST undergo MEA Normal Attestation followed by Consular Legalization by the Chinese Embassy/Consulate in India.",
+    ],
+    itemsRequiringConfirmation: [
+      "Confirm whether Chinese translation is required before or after Chinese Embassy legalization for your work permit (Z-Visa) or university admission.",
+      "Note: Hong Kong SAR and Macao SAR have separate treaty arrangements where Apostille applies, unlike Mainland China.",
+    ],
+    translationRequirement: {
+      required: true,
+      details:
+        "Certified Chinese (Mandarin) translation is typically required by Chinese work permit and university authorities.",
+    },
+    specialCountryRequirements: [
+      "Never obtain an MEA Apostille sticker for Mainland China; request MEA Normal Attestation stamp + Chinese Embassy Legalization.",
+      "Original passport copy and application form for Consular Legalization are mandatory for Chinese Embassy submission.",
+    ],
+    verificationStatus: "verified",
+    lastVerifiedDate: "2025-02-15",
+    officialSources: [
+      {
+        title:
+          "HCCH — 1961 Apostille Convention Status Table & Declarations (China / India Article 12 Objection)",
+        url: "https://www.hcch.net/en/instruments/conventions/status-table/?cid=41",
+        authorityType: "HCCH",
+      },
+      {
+        title:
+          "Embassy of the People's Republic of China in India — Notice on Consular Legalization",
+        url: "http://in.china-embassy.gov.cn/eng/",
+        authorityType: "EMBASSY_CONSULATE",
+      },
+    ],
+    researchMetadata: {
+      modelUsed: "curated_official_seed",
+      groundedSearchUsed: false,
+      confidenceScore: "high",
+      researchedAt: "2025-02-15T00:00:00Z",
+    },
+  },
+  {
+    id: "qatar__educational__bachelor-s-master-s-degree-certificate",
+    destinationCountry: "Qatar",
+    countryCode: "QA",
+    isHagueConventionApplicable: false,
+    treatyStatusNote:
+      "Qatar is not a party to the 1961 Hague Apostille Convention. Bilateral MEA + Qatar Embassy legalization in New Delhi is mandatory.",
+    documentCategory: "educational",
+    documentType: "Bachelor's / Master's Degree Certificate",
+    authenticationRouteTitle:
+      "Bilateral Qatar Embassy Legalization Route (Complete 3-Document Educational Set)",
+    stepByStepSequence: [
+      {
+        stepNumber: 1,
+        authority: "Notary Public & State HRD / SDM (India)",
+        description:
+          "Authentication of Degree Certificate, Final/Consolidated Marksheets, and University Bonafide Letter.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 2,
+        authority: "Ministry of External Affairs (MEA), India",
+        description:
+          "MEA Normal Attestation stamp on the educational documents.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 3,
+        authority: "Embassy of the State of Qatar (New Delhi)",
+        description:
+          "Qatar Embassy consular legalization (requires Degree + Transcript/Marksheets + Original University Verification/Bonafide Letter).",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 4,
+        authority: "Qatar MOFA (Doha)",
+        description:
+          "Final counter-attestation at the Ministry of Foreign Affairs in Qatar.",
+        isMandatory: true,
+      },
+    ],
+    verifiedStatutoryRules: [
+      "Qatar is a non-Hague country; MEA Apostille is not valid for Qatar.",
+      "The Embassy of Qatar in India requires a complete educational set: (1) Original Degree Certificate, (2) Final/Consolidated Marksheet, and (3) a Bonafide / Mode of Study Certificate from the issuing university confirming regular (non-distance) study.",
+    ],
+    itemsRequiringConfirmation: [
+      "Verify that your Bonafide Certificate explicitly states the course duration and that the mode of study was 'Regular / Full-Time' (distance/online degrees are generally not attested by Qatar Embassy).",
+    ],
+    translationRequirement: {
+      required: "conditional",
+      details:
+        "English documents are accepted by the Qatar Embassy in New Delhi; Arabic translation may be required in Doha.",
+    },
+    specialCountryRequirements: [
+      "Mandatory 3-document rule for Qatar educational attestation: Degree + Marksheets + Original Bonafide Certificate.",
+    ],
+    verificationStatus: "partially_verified",
+    lastVerifiedDate: "2025-02-15",
+    officialSources: [
+      {
+        title: "MEA India — CPV Division Attestation Guidelines",
+        url: "https://www.mea.gov.in/apostille-and-attestation.htm",
+        authorityType: "MEA_INDIA",
+      },
+    ],
+    researchMetadata: {
+      modelUsed: "curated_official_seed",
+      groundedSearchUsed: false,
+      confidenceScore: "high",
+      researchedAt: "2025-02-15T00:00:00Z",
+    },
+  },
+  {
+    id: "kuwait__educational__bachelor-s-master-s-degree-certificate",
+    destinationCountry: "Kuwait",
+    countryCode: "KW",
+    isHagueConventionApplicable: false,
+    treatyStatusNote:
+      "Kuwait is not a party to the 1961 Hague Apostille Convention. Requires MEA Normal Attestation and Kuwait Embassy Legalization.",
+    documentCategory: "educational",
+    documentType: "Bachelor's / Master's Degree Certificate",
+    authenticationRouteTitle:
+      "Bilateral Kuwait Embassy Legalization Route (Notary → HRD/SDM → MEA → Kuwait Embassy)",
+    stepByStepSequence: [
+      {
+        stepNumber: 1,
+        authority: "Notary Public (India)",
+        description: "Primary notarial verification.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 2,
+        authority: "State HRD Department or SDM",
+        description: "State HRD or SDM authentication.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 3,
+        authority: "Ministry of External Affairs (MEA), India",
+        description: "MEA Normal Attestation stamp.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 4,
+        authority: "Embassy of the State of Kuwait (New Delhi)",
+        description: "Kuwait Embassy consular legalization seal.",
+        isMandatory: true,
+      },
+    ],
+    verifiedStatutoryRules: [
+      "Kuwait is not a Hague Apostille member; MEA Normal Attestation + Kuwait Embassy Legalization is required.",
+    ],
+    itemsRequiringConfirmation: [
+      "Engineering and technical professionals moving to Kuwait should verify Kuwait Society of Engineers (KSE) and State HRD requirements.",
+    ],
+    translationRequirement: {
+      required: "conditional",
+      details:
+        "Arabic translation is frequently required in Kuwait for residency and ministry registration.",
+    },
+    specialCountryRequirements: [
+      "Marksheets and passport copy are required as supporting documents for Kuwait Embassy attestation.",
+    ],
+    verificationStatus: "partially_verified",
+    lastVerifiedDate: "2025-02-15",
+    officialSources: [
+      {
+        title: "MEA India — CPV Division Attestation Guidelines",
+        url: "https://www.mea.gov.in/apostille-and-attestation.htm",
+        authorityType: "MEA_INDIA",
+      },
+    ],
+    researchMetadata: {
+      modelUsed: "curated_official_seed",
+      groundedSearchUsed: false,
+      confidenceScore: "high",
+      researchedAt: "2025-02-15T00:00:00Z",
+    },
+  },
+  {
+    id: "germany__educational__bachelor-s-master-s-degree-certificate",
+    destinationCountry: "Germany",
+    countryCode: "DE",
+    isHagueConventionApplicable: true,
+    treatyStatusNote:
+      "Germany and India are both contracting states to the 1961 Hague Apostille Convention. MEA Apostille sticker is accepted for public documents.",
+    documentCategory: "educational",
+    documentType: "Bachelor's / Master's Degree Certificate",
+    authenticationRouteTitle:
+      "Hague Apostille Convention Route (Notary → SDM/HRD → MEA Apostille Sticker)",
+    stepByStepSequence: [
+      {
+        stepNumber: 1,
+        authority: "Notary Public (India)",
+        description: "Primary verification of the original degree certificate.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 2,
+        authority:
+          "Sub-Divisional Magistrate (SDM) or State HRD Department",
+        description:
+          "State HRD or SDM authentication prior to MEA Apostille.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 3,
+        authority: "Ministry of External Affairs (MEA), India — Hague Apostille",
+        description:
+          "Computerized MEA Hague Apostille sticker with QR verification applied on the reverse.",
+        isMandatory: true,
+      },
+    ],
+    verifiedStatutoryRules: [
+      "Germany is a member of the 1961 Hague Apostille Convention; routine German Embassy legalization of Indian documents is replaced by the MEA Apostille.",
+      "For Indian students applying for German university admission and student visas, Academic Evaluation Centre (APS India) certification is mandatory.",
+    ],
+    itemsRequiringConfirmation: [
+      "If applying for a German Student Visa, confirm your APS India verification requirements.",
+      "If applying for an EU Blue Card or Employment Visa, check ANABIN database recognition of your Indian university and whether certified German translation is needed.",
+    ],
+    translationRequirement: {
+      required: "conditional",
+      details:
+        "English degrees are often accepted for initial visa/university processing, while local German authorities (Standesamt/recognition bodies) may require sworn German translation.",
+    },
+    specialCountryRequirements: [
+      "APS India (Academic Evaluation Centre, New Delhi) certificate is mandatory for Indian applicants seeking a German student visa.",
+    ],
+    verificationStatus: "verified",
+    lastVerifiedDate: "2025-02-15",
+    officialSources: [
+      {
+        title: "HCCH — 1961 Apostille Convention Status Table",
+        url: "https://www.hcch.net/en/instruments/conventions/status-table/?cid=41",
+        authorityType: "HCCH",
+      },
+      {
+        title: "German Missions in India — APS & Document Information",
+        url: "https://india.diplo.de/",
+        authorityType: "EMBASSY_CONSULATE",
+      },
+    ],
+    researchMetadata: {
+      modelUsed: "curated_official_seed",
+      groundedSearchUsed: false,
+      confidenceScore: "high",
+      researchedAt: "2025-02-15T00:00:00Z",
+    },
+  },
+  {
+    id: "italy__educational__bachelor-s-master-s-degree-certificate",
+    destinationCountry: "Italy",
+    countryCode: "IT",
+    isHagueConventionApplicable: true,
+    treatyStatusNote:
+      "Italy is a contracting state to the 1961 Hague Apostille Convention. Requires MEA Apostille plus Italian translation/DOV for academic recognition.",
+    documentCategory: "educational",
+    documentType: "Bachelor's / Master's Degree Certificate",
+    authenticationRouteTitle:
+      "Hague Apostille Route + Italian Translation & Declaration of Value (DOV)",
+    stepByStepSequence: [
+      {
+        stepNumber: 1,
+        authority: "State HRD Department or SDM (India)",
+        description:
+          "State HRD or SDM authentication (note: Italian Consulates for DOV often specify State HRD or Apostille rules by jurisdiction).",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 2,
+        authority: "Ministry of External Affairs (MEA), India — Hague Apostille",
+        description:
+          "MEA Hague Apostille sticker affixed to the original degree and transcripts.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 3,
+        authority:
+          "Italian Translation & Consular DOV / CIMEA (Where Applicable)",
+        description:
+          "Certified Italian translation and Declaration of Value (Dichiarazione di Valore - DOV) from the Italian Embassy/Consulate, or CIMEA Statement of Comparability.",
+        isMandatory: false,
+        conditionNote:
+          "Required for higher education enrollment and academic recognition in Italy.",
+      },
+    ],
+    verifiedStatutoryRules: [
+      "Italy is a 1961 Hague Apostille Convention member; all original Indian educational and personal documents must carry the MEA Apostille sticker before submission to Italian authorities.",
+      "For Italian study visas and university enrollment, Italian universities require either a Consular Declaration of Value (DOV) or a CIMEA Statement of Comparability.",
+    ],
+    itemsRequiringConfirmation: [
+      "Check your Italian university's call for applications (Universitaly summary) to confirm whether they accept CIMEA or require a physical DOV from the Italian Embassy/Consulate in New Delhi/Mumbai/Kolkata/Bengaluru.",
+    ],
+    translationRequirement: {
+      required: true,
+      details:
+        "Official Italian translation (legalized or with translator apostille/consular stamp) is required for DOV and municipal submissions in Italy.",
+    },
+    specialCountryRequirements: [
+      "Declaration of Value (DOV) applications require the original Apostilled degree, Apostilled transcripts, and certified Italian translations.",
+    ],
+    verificationStatus: "verified",
+    lastVerifiedDate: "2025-02-15",
+    officialSources: [
+      {
+        title: "HCCH — 1961 Apostille Convention Status Table",
+        url: "https://www.hcch.net/en/instruments/conventions/status-table/?cid=41",
+        authorityType: "HCCH",
+      },
+      {
+        title: "Embassy of Italy in New Delhi — Study & Consular Services",
+        url: "https://ambnewdelhi.esteri.it/",
+        authorityType: "EMBASSY_CONSULATE",
+      },
+    ],
+    researchMetadata: {
+      modelUsed: "curated_official_seed",
+      groundedSearchUsed: false,
+      confidenceScore: "high",
+      researchedAt: "2025-02-15T00:00:00Z",
+    },
+  },
+  {
+    id: "canada__educational__bachelor-s-master-s-degree-certificate",
+    destinationCountry: "Canada",
+    countryCode: "CA",
+    isHagueConventionApplicable: true,
+    treatyStatusNote:
+      "The 1961 Hague Apostille Convention entered into force for Canada on January 11, 2024. Indian public documents for Canada now use the MEA Hague Apostille route.",
+    documentCategory: "educational",
+    documentType: "Bachelor's / Master's Degree Certificate",
+    authenticationRouteTitle:
+      "Hague Apostille Convention Route (Effective Jan 2024) + ECA Note",
+    stepByStepSequence: [
+      {
+        stepNumber: 1,
+        authority: "Notary Public (India)",
+        description: "Initial notarial verification of original certificate.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 2,
+        authority:
+          "Sub-Divisional Magistrate (SDM) or State HRD Department",
+        description: "SDM or State HRD authentication.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 3,
+        authority: "Ministry of External Affairs (MEA), India — Hague Apostille",
+        description: "MEA Hague Apostille sticker with QR verification.",
+        isMandatory: true,
+      },
+    ],
+    verifiedStatutoryRules: [
+      "The 1961 Hague Apostille Convention took effect in Canada on 11 January 2024; routine Canadian High Commission legalization is replaced by the MEA Apostille sticker.",
+    ],
+    itemsRequiringConfirmation: [
+      "For Express Entry / IRCC immigration points, check whether your designated Educational Credential Assessment (ECA) body (e.g., WES, IQAS, ICAS) requires direct university-to-ECA sealed transcripts rather than an Apostille.",
+    ],
+    translationRequirement: {
+      required: "conditional",
+      details:
+        "Documents in English or French do not require translation for Canada.",
+    },
+    specialCountryRequirements: [
+      "Distinguish between MEA Apostille (for employers/courts/provincial licensing) and ECA (WES/IQAS direct university transcript verification for IRCC immigration).",
+    ],
+    verificationStatus: "verified",
+    lastVerifiedDate: "2025-02-15",
+    officialSources: [
+      {
+        title: "HCCH — 1961 Apostille Convention Status Table (Canada Accession)",
+        url: "https://www.hcch.net/en/instruments/conventions/status-table/?cid=41",
+        authorityType: "HCCH",
+      },
+      {
+        title:
+          "Global Affairs Canada — Changes to Authentication Services (Apostille)",
+        url: "https://www.international.gc.ca/gac-amc/about-a_propos/services/authentication-authentification/apostille-convention.aspx?lang=eng",
+        authorityType: "GOVERNMENT_PORTAL",
+      },
+    ],
+    researchMetadata: {
+      modelUsed: "curated_official_seed",
+      groundedSearchUsed: false,
+      confidenceScore: "high",
+      researchedAt: "2025-02-15T00:00:00Z",
+    },
+  },
+  {
+    id: "oman__personal__marriage-certificate",
+    destinationCountry: "Oman",
+    countryCode: "OM",
+    isHagueConventionApplicable: true,
+    treatyStatusNote:
+      "Oman is a contracting member of the 1961 Hague Apostille Convention. Indian personal documents require an MEA Apostille sticker.",
+    documentCategory: "personal",
+    documentType: "Marriage Certificate",
+    authenticationRouteTitle:
+      "Hague Apostille Convention Route (Notary → SDM/Home → MEA Apostille Sticker)",
+    stepByStepSequence: [
+      {
+        stepNumber: 1,
+        authority: "Notary Public (India)",
+        description:
+          "Primary notarial verification of original Marriage Certificate.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 2,
+        authority: "Sub-Divisional Magistrate (SDM) or State Home Department",
+        description: "Administrative authentication prior to MEA submission.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 3,
+        authority: "Ministry of External Affairs (MEA), India — Hague Apostille",
+        description:
+          "Official MEA Hague Apostille sticker affixed on the reverse of the original document.",
+        isMandatory: true,
+      },
+    ],
+    verifiedStatutoryRules: [
+      "Oman is a 1961 Hague Convention member; MEA Apostille is the standard authentication route for Indian personal and educational documents.",
+    ],
+    itemsRequiringConfirmation: [
+      "Confirm with your Omani sponsor or Royal Oman Police (ROP) whether additional Oman MOFA counter-endorsement is requested upon arrival in Muscat.",
+    ],
+    translationRequirement: {
+      required: "conditional",
+      details:
+        "English certificates are generally accepted; Arabic translation may be requested locally.",
+    },
+    specialCountryRequirements: [
+      "Spouse passport copies should match the exact names on the Marriage Certificate.",
+    ],
+    verificationStatus: "partially_verified",
+    lastVerifiedDate: "2025-02-15",
+    officialSources: [
+      {
+        title: "HCCH — 1961 Apostille Convention Status Table (Oman)",
+        url: "https://www.hcch.net/en/instruments/conventions/status-table/?cid=41",
+        authorityType: "HCCH",
+      },
+    ],
+    researchMetadata: {
+      modelUsed: "curated_official_seed",
+      groundedSearchUsed: false,
+      confidenceScore: "high",
+      researchedAt: "2025-02-15T00:00:00Z",
+    },
+  },
+  {
+    id: "united-states-of-america-usa__personal__birth-certificate",
+    destinationCountry: "United States of America (USA)",
+    countryCode: "US",
+    isHagueConventionApplicable: true,
+    treatyStatusNote:
+      "Both India and the United States are parties to the 1961 Hague Apostille Convention.",
+    documentCategory: "personal",
+    documentType: "Birth Certificate",
+    authenticationRouteTitle:
+      "Hague Apostille Convention Route (Notary → SDM/Home → MEA Apostille)",
+    stepByStepSequence: [
+      {
+        stepNumber: 1,
+        authority: "Notary Public (India)",
+        description: "Notarial attestation of the original Birth Certificate.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 2,
+        authority: "Sub-Divisional Magistrate (SDM) or State Home Department",
+        description:
+          "State/SDM verification prior to central ministry submission.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 3,
+        authority: "Ministry of External Affairs (MEA), India — Hague Apostille",
+        description:
+          "MEA Hague Apostille sticker with QR code; no US Embassy legalization required.",
+        isMandatory: true,
+      },
+    ],
+    verifiedStatutoryRules: [
+      "As both India and the USA are parties to the 1961 Hague Apostille Convention, documents bearing an Indian MEA Apostille do not require US Embassy legalization.",
+    ],
+    itemsRequiringConfirmation: [
+      "For USCIS (I-485 / Green Card) submissions, ensure the Birth Certificate shows full names of both parents and timely registration, or prepare secondary evidence/non-availability certificate (NABC) if registered late.",
+    ],
+    translationRequirement: {
+      required: "conditional",
+      details:
+        "Certified English translation is mandatory if any part of the certificate is in an Indian regional language.",
+    },
+    specialCountryRequirements: [
+      "USCIS requires a complete certified English translation for any document containing non-English text or stamps.",
+    ],
+    verificationStatus: "verified",
+    lastVerifiedDate: "2025-02-15",
+    officialSources: [
+      {
+        title: "HCCH — 1961 Apostille Convention Status Table",
+        url: "https://www.hcch.net/en/instruments/conventions/status-table/?cid=41",
+        authorityType: "HCCH",
+      },
+      {
+        title: "MEA India — Apostille & Attestation Guidelines",
+        url: "https://www.mea.gov.in/apostille-and-attestation.htm",
+        authorityType: "MEA_INDIA",
+      },
+    ],
+    researchMetadata: {
+      modelUsed: "curated_official_seed",
+      groundedSearchUsed: false,
+      confidenceScore: "high",
+      researchedAt: "2025-02-15T00:00:00Z",
+    },
+  },
+  {
+    id: "united-kingdom-uk__educational__bachelor-s-master-s-degree-certificate",
+    destinationCountry: "United Kingdom (UK)",
+    countryCode: "GB",
+    isHagueConventionApplicable: true,
+    treatyStatusNote:
+      "The United Kingdom and India are both contracting states to the 1961 Hague Apostille Convention.",
+    documentCategory: "educational",
+    documentType: "Bachelor's / Master's Degree Certificate",
+    authenticationRouteTitle:
+      "Hague Apostille Convention Route (Notary → SDM/HRD → MEA Apostille Sticker)",
+    stepByStepSequence: [
+      {
+        stepNumber: 1,
+        authority: "Notary Public (India)",
+        description: "Primary notarial verification.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 2,
+        authority:
+          "Sub-Divisional Magistrate (SDM) or State HRD Department",
+        description: "SDM or State HRD authentication.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 3,
+        authority: "Ministry of External Affairs (MEA), India — Hague Apostille",
+        description: "MEA Hague Apostille sticker with QR verification.",
+        isMandatory: true,
+      },
+    ],
+    verifiedStatutoryRules: [
+      "The UK is a 1961 Hague Convention member; UK High Commission legalization is not required once the document carries an MEA Apostille sticker.",
+    ],
+    itemsRequiringConfirmation: [
+      "For UK healthcare/regulated roles (GMC, NMC, HCPC, Ecctis), verify whether direct primary source verification is also required alongside Apostilled certificates.",
+    ],
+    translationRequirement: {
+      required: "conditional",
+      details:
+        "Documents in English do not require translation for the UK.",
+    },
+    specialCountryRequirements: [],
+    verificationStatus: "partially_verified",
+    lastVerifiedDate: "2025-02-15",
+    officialSources: [
+      {
+        title: "HCCH — 1961 Apostille Convention Status Table",
+        url: "https://www.hcch.net/en/instruments/conventions/status-table/?cid=41",
+        authorityType: "HCCH",
+      },
+    ],
+    researchMetadata: {
+      modelUsed: "curated_official_seed",
+      groundedSearchUsed: false,
+      confidenceScore: "high",
+      researchedAt: "2025-02-15T00:00:00Z",
+    },
+  },
+  {
+    id: "portugal__personal__police-clearance-certificate-pcc",
+    destinationCountry: "Portugal",
+    countryCode: "PT",
+    isHagueConventionApplicable: true,
+    treatyStatusNote:
+      "Portugal is a 1961 Hague Apostille Convention member. Requires MEA Hague Apostille and certified Portuguese translation.",
+    documentCategory: "personal",
+    documentType: "Police Clearance Certificate (PCC)",
+    authenticationRouteTitle:
+      "Hague Apostille Route for PCC (PSK/RPO Direct MEA or SDM → MEA Apostille)",
+    stepByStepSequence: [
+      {
+        stepNumber: 1,
+        authority: "Regional Passport Office (RPO / PSK) or SDM Verification",
+        description:
+          "PCC issued by Regional Passport Office (RPO) is recognized as a central government document; state police PCC requires Home Dept/SDM authentication.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 2,
+        authority: "Ministry of External Affairs (MEA), India — Hague Apostille",
+        description: "MEA Hague Apostille sticker applied on the original PCC.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 3,
+        authority: "Certified Portuguese Translation",
+        description:
+          "Translation of the Apostilled PCC into Portuguese for AIMA / VFS visa submission.",
+        isMandatory: true,
+      },
+    ],
+    verifiedStatutoryRules: [
+      "Portugal is a 1961 Hague Convention member; Indian PCC for Portuguese residency (AIMA) or long-stay visas must carry an MEA Hague Apostille sticker.",
+      "PCCs generally have a strict validity window (typically 90 days from date of issue) for European visa/residency submissions.",
+    ],
+    itemsRequiringConfirmation: [
+      "Confirm that your PCC was issued by the Regional Passport Office (Passport Seva Kendra) and is within its 3-month validity window before submission.",
+    ],
+    translationRequirement: {
+      required: true,
+      details:
+        "Certified Portuguese translation is required for AIMA residency and Portuguese consular submissions.",
+    },
+    specialCountryRequirements: [
+      "Ensure the PCC is Apostilled promptly after issuance due to the 90-day validity window.",
+    ],
+    verificationStatus: "partially_verified",
+    lastVerifiedDate: "2025-02-15",
+    officialSources: [
+      {
+        title: "MEA India — Apostille of PCC and Personal Documents",
+        url: "https://www.mea.gov.in/apostille-and-attestation.htm",
+        authorityType: "MEA_INDIA",
+      },
+    ],
+    researchMetadata: {
+      modelUsed: "curated_official_seed",
+      groundedSearchUsed: false,
+      confidenceScore: "high",
+      researchedAt: "2025-02-15T00:00:00Z",
+    },
+  },
+  {
+    id: "spain__personal__police-clearance-certificate-pcc",
+    destinationCountry: "Spain",
+    countryCode: "ES",
+    isHagueConventionApplicable: true,
+    treatyStatusNote:
+      "Spain is a 1961 Hague Apostille Convention member. Requires MEA Apostille plus Spanish Sworn Translation (Traducción Jurada).",
+    documentCategory: "personal",
+    documentType: "Police Clearance Certificate (PCC)",
+    authenticationRouteTitle:
+      "Hague Apostille Route + Spanish Sworn Translation (Traducción Jurada)",
+    stepByStepSequence: [
+      {
+        stepNumber: 1,
+        authority: "RPO Issuance / SDM Authentication",
+        description: "Verification of original Police Clearance Certificate.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 2,
+        authority: "Ministry of External Affairs (MEA), India — Hague Apostille",
+        description: "MEA Hague Apostille sticker affixed to the original PCC.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 3,
+        authority: "Spanish Sworn Translation (Traductor-Intérprete Jurado)",
+        description:
+          "Official Spanish translation recognized by the Spanish Ministry of Foreign Affairs (MAEC).",
+        isMandatory: true,
+      },
+    ],
+    verifiedStatutoryRules: [
+      "Spain is a 1961 Hague Apostille Convention member; all Indian public documents must bear the MEA Apostille sticker.",
+      "Spanish Embassies/Consulates and immigration authorities require translations into Spanish to be performed by an MAEC-accredited Sworn Translator (Traductor Jurado) or legalized by the Spanish Consulate.",
+    ],
+    itemsRequiringConfirmation: [
+      "Verify that the PCC is less than 3 months old at the time of your BLS/Spanish Consulate appointment.",
+    ],
+    translationRequirement: {
+      required: true,
+      details:
+        "Mandatory Spanish Sworn Translation (Traducción Jurada) performed after the MEA Apostille sticker is affixed.",
+    },
+    specialCountryRequirements: [
+      "Always complete the MEA Apostille on the original English document FIRST so the Apostille sticker itself is included in the Spanish translation.",
+    ],
+    verificationStatus: "partially_verified",
+    lastVerifiedDate: "2025-02-15",
+    officialSources: [
+      {
+        title: "HCCH — 1961 Apostille Convention Status Table (Spain)",
+        url: "https://www.hcch.net/en/instruments/conventions/status-table/?cid=41",
+        authorityType: "HCCH",
+      },
+    ],
+    researchMetadata: {
+      modelUsed: "curated_official_seed",
+      groundedSearchUsed: false,
+      confidenceScore: "high",
+      researchedAt: "2025-02-15T00:00:00Z",
+    },
+  },
+  {
+    id: "egypt__commercial__commercial-export-invoice",
+    destinationCountry: "Egypt",
+    countryCode: "EG",
+    isHagueConventionApplicable: false,
+    treatyStatusNote:
+      "Egypt is not a party to the 1961 Hague Apostille Convention. Bilateral MEA + Embassy of Egypt legalization is mandatory.",
+    documentCategory: "commercial",
+    documentType: "Commercial Export Invoice",
+    authenticationRouteTitle:
+      "Commercial Embassy Legalization Route (Chamber of Commerce → MEA → Embassy of Egypt)",
+    stepByStepSequence: [
+      {
+        stepNumber: 1,
+        authority: "Chamber of Commerce (India)",
+        description:
+          "Official trade attestation by a recognized Indian Chamber of Commerce.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 2,
+        authority: "Ministry of External Affairs (MEA), India",
+        description:
+          "MEA Normal Attestation stamp on the Chamber-verified export invoice.",
+        isMandatory: true,
+      },
+      {
+        stepNumber: 3,
+        authority: "Embassy of the Arab Republic of Egypt (New Delhi)",
+        description:
+          "Consular legalization stamp applied by the Embassy of Egypt.",
+        isMandatory: true,
+      },
+    ],
+    verifiedStatutoryRules: [
+      "Egypt is not a member of the 1961 Hague Apostille Convention; commercial export invoices and Certificates of Origin must undergo Chamber of Commerce, MEA Normal Attestation, and Egyptian Embassy legalization.",
+    ],
+    itemsRequiringConfirmation: [
+      "Confirm whether the Egyptian importer or bank (under ACID / CargoX rules) requires Certificate of Origin and Packing List to be legalized together with the Commercial Invoice.",
+    ],
+    translationRequirement: {
+      required: "conditional",
+      details:
+        "English export invoices are accepted by the Egyptian Embassy in New Delhi.",
+    },
+    specialCountryRequirements: [
+      "Chamber of Commerce stamp is a strict prerequisite before MEA and Embassy of Egypt submission.",
+    ],
+    verificationStatus: "partially_verified",
+    lastVerifiedDate: "2025-02-15",
+    officialSources: [
+      {
+        title: "MEA India — Commercial Document Attestation",
+        url: "https://www.mea.gov.in/apostille-and-attestation.htm",
+        authorityType: "MEA_INDIA",
+      },
+    ],
+    researchMetadata: {
+      modelUsed: "curated_official_seed",
+      groundedSearchUsed: false,
+      confidenceScore: "high",
+      researchedAt: "2025-02-15T00:00:00Z",
+    },
+  },
+];
+
+export const PRIORITY_RESEARCH_QUEUE: PriorityResearchQueueItem[] = [
+  {
+    id: "queue-uae-pcc",
+    priorityTier: 1,
+    destinationGroup: "GCC & Middle East",
+    destinationCountry: "United Arab Emirates (UAE)",
+    documentCategory: "personal",
+    documentType: "Police Clearance Certificate (PCC)",
+    rationale:
+      "High-volume UAE employment & Golden Visa requirement for Indian residents.",
+  },
+  {
+    id: "queue-ksa-marriage",
+    priorityTier: 1,
+    destinationGroup: "GCC & Middle East",
+    destinationCountry: "Kingdom of Saudi Arabia (KSA)",
+    documentCategory: "personal",
+    documentType: "Marriage Certificate",
+    rationale:
+      "Saudi Family Joining / Iqama Dependent Visa requirement under Hague Apostille.",
+  },
+  {
+    id: "queue-qatar-marriage",
+    priorityTier: 1,
+    destinationGroup: "GCC & Middle East",
+    destinationCountry: "Qatar",
+    documentCategory: "personal",
+    documentType: "Marriage Certificate",
+    rationale: "Qatar family residency sponsorship via bilateral embassy route.",
+  },
+  {
+    id: "queue-germany-marriage",
+    priorityTier: 2,
+    destinationGroup: "European Union (Hague)",
+    destinationCountry: "Germany",
+    documentCategory: "personal",
+    documentType: "Marriage Certificate",
+    rationale:
+      "German Family Reunion (Ehegattennachzug) visa requirement for Indian spouses.",
+  },
+  {
+    id: "queue-netherlands-degree",
+    priorityTier: 2,
+    destinationGroup: "European Union (Hague)",
+    destinationCountry: "Netherlands",
+    documentCategory: "educational",
+    documentType: "Bachelor's / Master's Degree Certificate",
+    rationale:
+      "Highly Skilled Migrant (IND) & Dutch university admission route.",
+  },
+  {
+    id: "queue-vietnam-degree",
+    priorityTier: 3,
+    destinationGroup: "Asia-Pacific (Non-Hague)",
+    destinationCountry: "Vietnam",
+    documentCategory: "educational",
+    documentType: "Bachelor's / Master's Degree Certificate",
+    rationale:
+      "Vietnam Work Permit bilateral embassy legalization requirement in New Delhi.",
+  },
+];

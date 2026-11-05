@@ -1,0 +1,55 @@
+<svg viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#DFB76C" />
+      <stop offset="100%" stop-color="#B38532" />
+    </linearGradient>
+    <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00AEC7" />
+      <stop offset="100%" stop-color="#006D85" />
+    </linearGradient>
+    <clipPath id="globeClip">
+      <circle cx="88" cy="58" r="32" />
+    </clipPath>
+  </defs>
+
+  <!-- Globe Background -->
+  <g opacity="0.95">
+    <circle cx="88" cy="58" r="32" fill="#E0F2FE" />
+    <ellipse cx="88" cy="58" rx="32" ry="12" stroke="#1D4ED8" stroke-width="1" fill="none" opacity="0.4" />
+    <ellipse cx="88" cy="58" rx="32" ry="22" stroke="#1D4ED8" stroke-width="1" fill="none" opacity="0.4" />
+    <ellipse cx="88" cy="58" rx="14" ry="32" stroke="#1D4ED8" stroke-width="1" fill="none" opacity="0.4" />
+    <line x1="56" y1="58" x2="120" y2="58" stroke="#1D4ED8" stroke-width="1.2" opacity="0.5" />
+    <line x1="88" y1="26" x2="88" y2="90" stroke="#1D4ED8" stroke-width="1.2" opacity="0.5" />
+    <g clip-path="url(#globeClip)" fill="#1D4ED8" opacity="0.65">
+      <path d="M78 40c4-2 9 1 12 4s7 1 10 4 3 6 1 9-6 4-9 6-8 1-10-3-4-7-4-10z" />
+      <path d="M76 56c3 1 6 5 5 9s-2 9-5 11-4-2-5-6 1-11 4-14z" />
+      <path d="M94 54c2 2 4 6 3 9s-4 4-5 2 0-7 2-11z" />
+    </g>
+    <circle cx="88" cy="58" r="32" stroke="#38BDF8" stroke-width="1.5" fill="none" />
+  </g>
+
+  <!-- Capital Serif "F" in Navy Blue -->
+  <path
+    d="M44 26h74v22h-12c-2-7-5-10-14-10H72v36h18c7 0 10-3 12-9h9v30h-9c-2-6-5-9-12-9H72v35c0 9 4 12 15 12h11v12H44v-12h11c11 0 14-3 14-12V48c0-9-3-12-14-12H44V26z"
+    fill="#0B2545"
+  />
+
+  <!-- Upper Gold Swoosh -->
+  <path
+    d="M20 72c24-4 42-26 68-24 18 1 34 11 46 16-16-1-32-8-48-9-24-1-42 16-66 17z"
+    fill="url(#goldGrad)"
+  />
+
+  <!-- Lower Teal Dynamic Swoosh -->
+  <path
+    d="M24 78c26 2 42-14 66-14 20 0 38 12 52 20-18-4-36-14-54-14-22 0-38 18-64 8z"
+    fill="url(#tealGrad)"
+  />
+
+  <path
+    d="M28 88c22 4 36-8 56-8 18 0 34 10 46 16-16-4-32-12-48-12-20 0-34 14-54 4z"
+    fill="#14B8A6"
+    opacity="0.8"
+  />
+</svg>
