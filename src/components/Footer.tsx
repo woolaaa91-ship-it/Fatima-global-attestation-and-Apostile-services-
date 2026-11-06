@@ -177,6 +177,18 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onRepla
               </li>
               <li>
                 <a
+                  href="/visa-checklist/italy-student-visa"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate("/visa-checklist/italy-student-visa");
+                  }}
+                  className="hover:text-teal-300 transition-colors font-semibold text-teal-300/90"
+                >
+                  Visa Checklists (Student &amp; Work)
+                </a>
+              </li>
+              <li>
+                <a
                   href="/#route-finder"
                   onClick={(e) => {
                     e.preventDefault();

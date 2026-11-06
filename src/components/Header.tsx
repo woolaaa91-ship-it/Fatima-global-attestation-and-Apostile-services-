@@ -137,6 +137,25 @@ export const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate }) => {
                                 </span>
                               </a>
                             ))}
+                            <a
+                              href="/visa-checklist/italy-student-visa"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleNavClick("/visa-checklist/italy-student-visa");
+                              }}
+                              className={`w-full text-left px-4 py-2.5 text-xs font-medium transition-colors flex items-center justify-between gap-3 ${
+                                currentPath.startsWith("/visa-checklist")
+                                  ? "bg-teal-50 text-[#0F766E] font-bold"
+                                  : "text-slate-700 hover:bg-slate-50 hover:text-[#0A192F]"
+                              }`}
+                            >
+                              <span className="truncate">
+                                Visa Checklists (Student &amp; Work Visa Guides)
+                              </span>
+                              <span className="text-[10px] text-[#0F766E] shrink-0 font-bold">
+                                Checklist →
+                              </span>
+                            </a>
                           </div>
                           <div className="p-2 border-t border-slate-100 bg-slate-50 text-center">
                             <a
@@ -311,6 +330,17 @@ export const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate }) => {
               className="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-50/70 text-[#0A192F] border-slate-200/80 hover:bg-slate-100 transition-colors"
             >
               Knowledge Centre
+            </a>
+
+            <a
+              href="/visa-checklist/italy-student-visa"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavClick("/visa-checklist/italy-student-visa");
+              }}
+              className="px-3 py-2 rounded-lg text-xs font-semibold text-[#0F766E] bg-teal-50/80 border border-teal-200 hover:bg-teal-100 transition-colors"
+            >
+              Visa Checklists
             </a>
 
             <a

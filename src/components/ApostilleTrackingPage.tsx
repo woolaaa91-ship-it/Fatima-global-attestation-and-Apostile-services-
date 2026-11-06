@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Search,
   ShieldCheck,
@@ -13,6 +13,8 @@ import {
   Cog,
   CheckCircle2,
   Send,
+  HelpCircle,
+  X,
 } from "lucide-react";
 import { BUSINESS_CONFIG, getWhatsAppUrl } from "../config/business";
 import { WhatsAppIcon } from "./WhatsAppIcon";
@@ -99,6 +101,31 @@ export const ApostilleTrackingPage: React.FC<ApostilleTrackingPageProps> = ({
   const [verificationPinInput, setVerificationPinInput] = useState<string>("");
   const [showPinField, setShowPinField] = useState<boolean>(false);
   const [activeUrlToken, setActiveUrlToken] = useState<string | null>(null);
+  const [showRefHelpPopover, setShowRefHelpPopover] = useState<boolean>(false);
+  const refHelpContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!showRefHelpPopover) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        refHelpContainerRef.current &&
+        !refHelpContainerRef.current.contains(event.target as Node)
+      ) {
+        setShowRefHelpPopover(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowRefHelpPopover(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showRefHelpPopover]);
 
   const [isLoadingOrder, setIsLoadingOrder] = useState<boolean>(false);
   const [orderError, setOrderError] = useState<{
@@ -437,12 +464,91 @@ export const ApostilleTrackingPage: React.FC<ApostilleTrackingPageProps> = ({
                 className="space-y-3"
                 noValidate
               >
-                <label
-                  htmlFor="tracking-id-input"
-                  className="block text-xs font-semibold text-slate-700"
+                <div
+                  ref={refHelpContainerRef}
+                  className="relative flex flex-wrap items-center justify-between gap-2"
                 >
-                  Enter Tracking ID
-                </label>
+                  <label
+                    htmlFor="tracking-id-input"
+                    className="block text-xs font-semibold text-slate-700"
+                  >
+                    Enter Tracking ID
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowRefHelpPopover((prev) => !prev)}
+                    aria-expanded={showRefHelpPopover}
+                    aria-controls="ref-number-help-popover"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-teal-700 hover:text-[#0B2545] transition-colors cursor-pointer"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                    <span className="underline decoration-teal-500/60 underline-offset-2">
+                      How to find your reference number
+                    </span>
+                  </button>
+
+                  {showRefHelpPopover && (
+                    <div
+                      id="ref-number-help-popover"
+                      role="dialog"
+                      aria-label="How to find your reference number"
+                      className="w-full mt-1 rounded-xl bg-slate-900 text-white p-3.5 sm:p-4 shadow-lg border border-slate-700 text-xs space-y-2.5 z-20"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-1.5 font-bold text-amber-400">
+                          <FileText className="w-3.5 h-3.5 shrink-0" />
+                          <span>Where to find it on your receipt</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowRefHelpPopover(false)}
+                          aria-label="Close help"
+                          className="text-slate-400 hover:text-white p-0.5 rounded-md transition-colors cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <ul className="space-y-1.5 text-slate-200 leading-relaxed">
+                        <li className="flex items-start gap-2">
+                          <span className="text-teal-400 font-bold shrink-0">1.</span>
+                          <span>
+                            <strong className="text-white">Top-Right of Receipt:</strong>{" "}
+                            Look at the header box labeled{" "}
+                            <span className="font-mono text-teal-300 font-semibold">
+                              Tracking / Ref No.
+                            </span>{" "}
+                            on your official Fatima Global Attestation acknowledgment slip or invoice.
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-teal-400 font-bold shrink-0">2.</span>
+                          <span>
+                            <strong className="text-white">Below the QR Code:</strong>{" "}
+                            Printed directly beneath the verification QR code at the bottom of your physical or PDF receipt (format:{" "}
+                            <span className="font-mono text-amber-300 font-semibold">
+                              FGA-2026-000184
+                            </span>
+                            ).
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-teal-400 font-bold shrink-0">3.</span>
+                          <span>
+                            <strong className="text-white">WhatsApp / Email Message:</strong>{" "}
+                            Shared on your registered WhatsApp or email when your documents are logged at our New Delhi desk.
+                          </span>
+                        </li>
+                      </ul>
+
+                      <div className="pt-1.5 border-t border-slate-800 text-[11px] text-slate-300">
+                        <strong className="text-teal-300">Tip:</strong> Since{" "}
+                        <span className="font-mono font-bold text-white">FGA-</span> is already filled in, simply enter the numbers after it (e.g.{" "}
+                        <span className="font-mono text-white">2026-000184</span>).
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <div className="flex flex-col sm:flex-row gap-2.5">
                   <div className="flex-1 min-w-0 flex items-stretch rounded-xl border border-slate-300 bg-slate-50 focus-within:ring-2 focus-within:ring-teal-600 focus-within:bg-white overflow-hidden transition-all">
                     <span

@@ -1,6 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { SERVICES, ServiceItem } from "../data/services";
 import { PRIORITY_12_COUNTRIES } from "../data/countryDirectory";
+import {
+  VISA_CHECKLIST_PAGES,
+  VISA_CHECKLIST_COUNTRIES,
+  VisaTypeSlug,
+} from "../data/visaChecklists";
 import { getWhatsAppUrl } from "../config/business";
 import {
   FileCheck2,
@@ -17,6 +22,7 @@ import {
   ArrowRight,
   MapPin,
   BookOpen,
+  Search,
 } from "lucide-react";
 import { WhatsAppIcon } from "./WhatsAppIcon";
 import { CountryFlag } from "./CountryFlag";
@@ -157,6 +163,17 @@ const FEATURED_SERVICES: FeaturedServiceCard[] = [
       "bg-[#E6F4F1] text-[#0F766E] group-hover:bg-[#0F766E] group-hover:text-white",
     icon: <Globe2 className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-[#B45309]" />,
   },
+  {
+    id: "featured-visa-checklists",
+    title: `Visa Checklists (${VISA_CHECKLIST_COUNTRIES.length} Countries)`,
+    description:
+      `Italy Student Visa, Germany Work Visa, Israel B/1 Work Visa, UK, USA, UAE & ${VISA_CHECKLIST_COUNTRIES.length} countries' VFS document checklists.`,
+    slug: "/visa-checklist/italy-student-visa",
+    iconBgClass: "bg-[#E0F2FE]",
+    arrowBgClass:
+      "bg-[#E6F4F1] text-[#0F766E] group-hover:bg-[#0F766E] group-hover:text-white",
+    icon: <FileBadge className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-[#0369A1]" />,
+  },
 ];
 
 // Priority 12 countries are sourced directly from PRIORITY_12_COUNTRIES in ../data/countryDirectory
@@ -197,6 +214,26 @@ const getServiceIcon = (id: string) => {
 export const ServicesGrid: React.FC<ServicesGridProps> = ({
   onSelectService,
 }) => {
+  const [checklistTab, setChecklistTab] = useState<VisaTypeSlug>("student-visa");
+  const [checklistSearch, setChecklistSearch] = useState("");
+  const [showAllChecklists, setShowAllChecklists] = useState(false);
+
+  const filteredChecklists = VISA_CHECKLIST_PAGES.filter((item) => {
+    if (item.visaType !== checklistTab) return false;
+    const q = checklistSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      item.countryName.toLowerCase().includes(q) ||
+      item.visaSubtypeNote.toLowerCase().includes(q) ||
+      item.isoCode.toLowerCase().includes(q)
+    );
+  });
+
+  const displayedChecklists =
+    checklistSearch.trim().length > 0 || showAllChecklists
+      ? filteredChecklists
+      : filteredChecklists.slice(0, 12);
+
   const handleViewAllClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     onSelectService("#all-core-services");
@@ -455,6 +492,144 @@ export const ServicesGrid: React.FC<ServicesGridProps> = ({
               <span>Explore All Countries →</span>
             </a>
           </div>
+        </div>
+
+        {/* 2B. High-Traffic SEO Section: Visa Checklists (All Countries) */}
+        <div
+          id="visa-checklists"
+          className="pt-8 border-t border-slate-200/80 scroll-mt-20"
+        >
+          <div className="flex flex-wrap items-end justify-between gap-3 mb-4 sm:mb-5">
+            <div className="space-y-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#0F766E] block">
+                VFS Global &amp; Embassy Document Preparation Guides · {VISA_CHECKLIST_COUNTRIES.length} Countries
+              </span>
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#0A192F] font-serif tracking-tight">
+                Visa Checklists (Student &amp; Work Visa Document Guides)
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 max-w-2xl">
+                Simplified country visa checklists for Indian applicants (Italy, Germany, Israel B/1 Work Visa, UK, USA, Canada, UAE, Saudi Arabia, Portugal, Poland &amp; {VISA_CHECKLIST_COUNTRIES.length} countries) highlighting required MEA Apostille, Embassy Attestation &amp; Translation.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200/90 shrink-0">
+              <button
+                type="button"
+                onClick={() => setChecklistTab("student-visa")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  checklistTab === "student-visa"
+                    ? "bg-[#0A192F] text-white shadow-2xs"
+                    : "text-slate-600 hover:text-[#0A192F]"
+                }`}
+              >
+                <GraduationCap className="w-3.5 h-3.5 text-[#D49B27]" />
+                <span>Student Visa ({VISA_CHECKLIST_COUNTRIES.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setChecklistTab("work-visa")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  checklistTab === "work-visa"
+                    ? "bg-[#0A192F] text-white shadow-2xs"
+                    : "text-slate-600 hover:text-[#0A192F]"
+                }`}
+              >
+                <Briefcase className="w-3.5 h-3.5 text-[#D49B27]" />
+                <span>Work Visa ({VISA_CHECKLIST_COUNTRIES.length})</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Search Bar for 50 Countries */}
+          <div className="mb-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="search"
+                value={checklistSearch}
+                onChange={(e) => setChecklistSearch(e.target.value)}
+                placeholder="Search any country visa checklist (e.g., Israel, Italy, Germany, Portugal, Lithuania, Japan, Russia, UAE)..."
+                aria-label="Search country visa checklist"
+                className="w-full rounded-xl bg-slate-50 border border-slate-200/90 focus:border-[#0F766E] focus:bg-white text-xs sm:text-sm text-slate-800 pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAllChecklists((prev) => !prev)}
+              className="px-4 py-2.5 rounded-xl bg-teal-50 hover:bg-teal-100/80 text-[#0F766E] border border-teal-200 text-xs font-bold transition-colors cursor-pointer shrink-0"
+            >
+              {showAllChecklists
+                ? "Show Featured 12 Countries"
+                : `Show All ${filteredChecklists.length} Countries`}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+            {displayedChecklists.map((item) => (
+              <a
+                key={item.slug}
+                href={item.slug}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onSelectService(item.slug);
+                }}
+                className="p-4 sm:p-5 rounded-2xl bg-white hover:bg-teal-50/20 border border-slate-200/90 hover:border-[#0F766E] transition-all duration-150 group flex flex-col justify-between gap-3.5 shadow-xs hover:shadow-md min-w-0 box-border cursor-pointer select-none"
+              >
+                <div className="space-y-2.5 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <CountryFlag
+                      isoCode={item.isoCode}
+                      countryName={item.countryName}
+                      size="md"
+                      className="!w-11 !h-7.5 rounded-md shadow-2xs border border-slate-200/90"
+                    />
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-teal-50 text-[#0F766E] border border-teal-200 shrink-0">
+                      {item.visaType === "student-visa" ? "Student Visa" : "Work Visa"}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1 min-w-0">
+                    <h3 className="text-base font-extrabold text-[#0B2545] group-hover:text-[#0F766E] transition-colors font-display leading-snug">
+                      {item.countryName} {item.visaTypeDisplay} Checklist
+                    </h3>
+                    <span className="text-[11px] font-bold text-[#0F766E] block leading-tight truncate">
+                      {item.visaSubtypeNote}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-600 leading-relaxed line-clamp-3">
+                    {item.importantInfoText}
+                  </p>
+                </div>
+
+                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#0A192F] group-hover:bg-[#0F766E] text-white text-[11px] font-semibold transition-colors">
+                    <span>Open Checklist</span>
+                    <ArrowRight className="w-3 h-3 text-[#F3C969] group-hover:text-white group-hover:translate-x-0.5 transition-transform shrink-0" />
+                  </span>
+                  <span className="text-[11px] font-bold text-slate-500">
+                    {item.isHagueMember ? "Apostille" : "Embassy"}
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
+
+          {!showAllChecklists && checklistSearch.trim().length === 0 && (
+            <div className="mt-6 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setShowAllChecklists(true)}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#0A192F] hover:bg-[#0F766E] text-white text-xs sm:text-sm font-bold shadow-xs transition-all cursor-pointer border border-[#D49B27]/40"
+              >
+                <FileBadge className="w-4 h-4 text-[#D49B27] shrink-0" />
+                <span>
+                  View All {filteredChecklists.length}{" "}
+                  {checklistTab === "student-visa" ? "Student Visa" : "Work Visa"}{" "}
+                  Country Checklists →
+                </span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* 3. Local SEO Banner Card: Connaught Place, New Delhi Desk (PAN-India Courier) */}

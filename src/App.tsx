@@ -186,6 +186,9 @@ const LanguageTranslationDetailPage = lazy(() =>
     default: m.LanguageTranslationDetailPage,
   }))
 );
+const VisaChecklistSlugPage = lazy(() =>
+  import("./app/visa-checklist/[slug]/page")
+);
 import { SERVICES, ServiceItem } from "./data/services";
 import {
   getDedicatedPageByPath,
@@ -204,6 +207,11 @@ import {
   getLanguageTranslationByPath,
   type LanguageTranslationPageData,
 } from "./data/languageTranslations";
+import {
+  getVisaChecklistByPath,
+  VISA_CHECKLIST_PAGES,
+  type VisaChecklistData,
+} from "./data/visaChecklists";
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState<string>(() => {
@@ -463,6 +471,29 @@ export default function App() {
       ? getLanguageTranslationByPath(currentPath)
       : undefined;
 
+  // Find if current path is a Visa Checklist page (/visa-checklist/[slug])
+  const activeVisaChecklist: VisaChecklistData | undefined =
+    currentPath === "/visa-checklist" || currentPath === "/visa-checklists"
+      ? VISA_CHECKLIST_PAGES[0]
+      : currentPath.startsWith("/visa-checklist/") ||
+        currentPath.startsWith("/visa-checklists/")
+      ? getVisaChecklistByPath(currentPath)
+      : undefined;
+
+  // Ensure bare /visa-checklist or legacy /visa-checklists/* URLs always resolve to their dedicated /visa-checklist/[slug] URL
+  useEffect(() => {
+    if (activeVisaChecklist && currentPath !== activeVisaChecklist.slug) {
+      try {
+        window.history.replaceState(
+          window.history.state || {},
+          "",
+          activeVisaChecklist.slug
+        );
+      } catch {}
+      setCurrentPath(activeVisaChecklist.slug);
+    }
+  }, [activeVisaChecklist, currentPath]);
+
   // Find if current path is a city/state location landing page
   const activeLocationRoute = resolveLocationRoute(currentPath);
 
@@ -558,6 +589,12 @@ export default function App() {
           currentPath === "/mofa-attestation-services" ||
           currentPath === "/gulf-mofa-attestation" ? (
           <MofaAttestationPage onNavigate={navigateTo} />
+        ) : activeVisaChecklist ? (
+          <VisaChecklistSlugPage
+            key={activeVisaChecklist.slugParam}
+            params={{ slug: activeVisaChecklist.slugParam }}
+            onNavigate={navigateTo}
+          />
         ) : activeLocationRoute ? (
           <CityLandingPage
             key={activeLocationRoute.slug}

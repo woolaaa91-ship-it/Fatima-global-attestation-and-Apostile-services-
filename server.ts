@@ -20,6 +20,7 @@ import {
   generateRobotsTxt,
   generateSitemapXml,
 } from "./src/utils/seo.ts";
+import { getVisaChecklistByPath } from "./src/data/visaChecklists.ts";
 import {
   TrackingRepository,
   TrackingRateLimiter,
@@ -2190,12 +2191,35 @@ async function startServer() {
       jsonLdBlock
     );
 
+    // Inject static SEO H1 and checklist summary inside <noscript> for non-JS crawlers on /visa-checklist/[slug]
+    const reqPathClean = (reqPath.split("?")[0] || "/").replace(/\/+$/, "") || "/";
+    if (reqPathClean.startsWith("/visa-checklist/")) {
+      const checklist = getVisaChecklistByPath(reqPathClean);
+      if (checklist) {
+        const staticSeoSnapshot = `<noscript id="fga-static-visa-checklist"><article><h1>${escapeHtmlAttr(
+          checklist.h1
+        )}</h1><p>${escapeHtmlAttr(checklist.subtitle)}</p><h2>${escapeHtmlAttr(
+          checklist.importantInfoTitle
+        )}</h2><p>${escapeHtmlAttr(checklist.importantInfoText)}</p></article></noscript>`;
+        html = html.replace(/<\/body>/i, `${staticSeoSnapshot}</body>`);
+      }
+    }
+
     return {
       html,
       status: seo.isFound ? 200 : 404,
       robots: seo.robots,
     };
   };
+
+  // Canonical 301 redirects for bare /visa-checklist or legacy /visa-checklists/:slug
+  app.get(["/visa-checklist", "/visa-checklists"], (_req, res) => {
+    res.redirect(301, "/visa-checklist/italy-student-visa");
+  });
+
+  app.get("/visa-checklists/:slug", (req, res) => {
+    res.redirect(301, `/visa-checklist/${req.params.slug}`);
+  });
 
   const isHtmlRouteRequest = (reqPath: string): boolean => {
     if (

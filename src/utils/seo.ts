@@ -15,6 +15,10 @@ import {
   ALL_LANGUAGE_TRANSLATION_PAGES,
   getLanguageTranslationByPath,
 } from "../data/languageTranslations.ts";
+import {
+  VISA_CHECKLIST_PAGES,
+  getVisaChecklistByPath,
+} from "../data/visaChecklists.ts";
 
 export const CONFIGURABLE_SITE_URL_PLACEHOLDER =
   "https://fatimaglobalattestation.com";
@@ -76,6 +80,11 @@ export const PUBLIC_INDEXABLE_ROUTES: Array<{
     path: t.slug,
     changefreq: "weekly" as const,
     priority: "0.9",
+  })),
+  ...VISA_CHECKLIST_PAGES.map((v) => ({
+    path: v.slug,
+    changefreq: "weekly" as const,
+    priority: "0.95",
   })),
   ...SERVICES.map((s) => ({
     path: s.slug,
@@ -987,6 +996,76 @@ export function resolveRouteSEO(
     };
   }
 
+  // 7C. Visa Checklist Pages ("/visa-checklist/*")
+  const matchedVisaChecklist =
+    cleanPath === "/visa-checklist" || cleanPath === "/visa-checklists"
+      ? VISA_CHECKLIST_PAGES[0]
+      : cleanPath.startsWith("/visa-checklist/") ||
+        cleanPath.startsWith("/visa-checklists/")
+      ? getVisaChecklistByPath(cleanPath)
+      : undefined;
+  if (matchedVisaChecklist) {
+    const pageUrl = `${baseUrl}${matchedVisaChecklist.slug}`;
+    const legalizationLabel = matchedVisaChecklist.isHagueMember
+      ? "MEA Hague Apostille"
+      : `${matchedVisaChecklist.countryName} Embassy Attestation & MOFA`;
+    return {
+      path: matchedVisaChecklist.slug,
+      isFound: true,
+      isIndexable: true,
+      title: matchedVisaChecklist.seoTitle,
+      description: matchedVisaChecklist.metaDescription,
+      canonicalUrl: pageUrl,
+      robots: "index, follow",
+      ogType: "website",
+      ogImage: defaultImage,
+      jsonLd: [
+        {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          "@id": `${pageUrl}#webpage`,
+          name: matchedVisaChecklist.h1,
+          description: matchedVisaChecklist.metaDescription,
+          url: pageUrl,
+          inLanguage: "en-IN",
+          publisher: buildOrganizationSchema(baseUrl),
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "Service",
+          "@id": `${pageUrl}#service`,
+          name: `${matchedVisaChecklist.countryName} ${matchedVisaChecklist.visaTypeDisplay} Document ${
+            matchedVisaChecklist.isHagueMember ? "Apostille" : "Attestation"
+          } & Translation Assistance`,
+          serviceType: `${legalizationLabel} and Certified Translation for ${matchedVisaChecklist.countryName} ${matchedVisaChecklist.visaTypeDisplay}`,
+          description: matchedVisaChecklist.importantInfoText,
+          provider: buildOrganizationSchema(baseUrl),
+          areaServed: {
+            "@type": "Country",
+            name: "India",
+          },
+          url: pageUrl,
+        },
+        buildBreadcrumbSchema(baseUrl, [
+          { name: "Home", path: "/" },
+          {
+            name: "Visa Checklist",
+            path: "/visa-checklist/italy-student-visa",
+          },
+          {
+            name: `${matchedVisaChecklist.countryName} ${matchedVisaChecklist.visaTypeDisplay} Checklist`,
+            path: matchedVisaChecklist.slug,
+          },
+        ]),
+        buildFaqSchema(
+          matchedVisaChecklist.faqs,
+          pageUrl,
+          `${matchedVisaChecklist.countryName} ${matchedVisaChecklist.visaTypeDisplay} Document Checklist FAQs`
+        ),
+      ],
+    };
+  }
+
   // 8. Internal Administration Routes (Non-Indexable)
   if (
     cleanPath === "/blog-manage" ||
@@ -1031,7 +1110,9 @@ export function resolveRouteSEO(
 }
 
 /**
- * Updates document head tags in the browser on SPA route changes.
+ * Updates document head tags (title, meta description, OpenGraph, Twitter,
+ * canonical URL, and JSON-LD structured data including FAQPage schema) in the
+ * browser on SPA route changes or when a user selects a new country or visa type.
  */
 export function applyRouteSEO(pathname: string): RouteSEOMetadata {
   const fullPathWithSearch =
@@ -1091,7 +1172,7 @@ export function applyRouteSEO(pathname: string): RouteSEOMetadata {
   }
   canonicalEl.setAttribute("href", seo.canonicalUrl);
 
-  // Sync route-level JSON-LD script
+  // Sync route-level JSON-LD script (WebPage, BreadcrumbList, Service & FAQPage)
   const existingRouteSchema = document.getElementById(
     "fga-route-structured-data"
   );
